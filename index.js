@@ -10,11 +10,15 @@ const uploadRoute = require("./Route/uploadRoute/uploadRoute");
 
 const app = express();
 
-app.use(cors({
-  origin: 'https://optimizalpha-frontend.vercel.app', // frontend URL
-  credentials: true,
-  exposedHeaders: ['set-cookie']
-}));
+app.use(
+  cors({
+    origin: ["https://optimizalpha-frontend.vercel.app"], //  exact frontend URL
+    credentials: true, // allows cookies to pass
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
 app.use(express.json());
 app.use(cookieParser());
 
