@@ -12,12 +12,17 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["https://optimizalpha-frontend.vercel.app"], //  exact frontend URL
-    credentials: true, // allows cookies to pass
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    origin: ["https://optimizalpha-frontend.vercel.app"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Cache-Control",
+    ],
   })
 );
+
 
 app.use(express.json());
 app.use(cookieParser());
