@@ -11,7 +11,7 @@ const uploadRoute = require("./Route/uploadRoute/uploadRoute");
 const app = express();
 
 app.use(cors({
-  origin: 'http://localhost:5173', // frontend URL
+  origin: 'https://optimizalpha-frontend.vercel.app', // frontend URL
   credentials: true,
   exposedHeaders: ['set-cookie']
 }));
