@@ -81,15 +81,13 @@ const userLogin = async (req, res) => {
         );
 
         // Set JWT token as HTTP-only cookie
-        res.cookie("token", token, {
-          httpOnly: true,
-          secure: false, // Set to true in production with HTTPS
-          sameSite: "lax", // Works best for localhost
-          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-          path: "/"
-          // No domain - let browser handle it for localhost
-        });
-
+     res.cookie("token", token, {
+  httpOnly: true,
+  secure: true,        // ✅ must be true for HTTPS
+  sameSite: "none",    // ✅ required for cross-origin cookies
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  path: "/"
+});
         return res.status(200).json({
           Status: "Success",
           Message: "Login successful",
