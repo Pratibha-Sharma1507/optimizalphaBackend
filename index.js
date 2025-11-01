@@ -14,7 +14,7 @@ app.set('trust proxy', 1);
 
 app.use(
   cors({
-    origin: "https://optimizalpha-frontend-2css.vercel.app",
+    origin: ["https://optimizalpha-frontend-2css.vercel.app"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: [
@@ -28,8 +28,9 @@ app.use(
 );
 
 
-app.use(express.json());
+
 app.use(cookieParser());
+app.use(express.json());
 
 // ===================== Normal DB login/signup routes =====================
 const userRouter = require("./Route/userRoute/userRoute"); // 
