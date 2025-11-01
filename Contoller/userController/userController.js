@@ -135,17 +135,19 @@ const userLogout = async (req, res) => {
   try {
     res.clearCookie("token", {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
-      path: "/"
+      secure: true,       // must be true for HTTPS (Render, Vercel)
+      sameSite: "none",   
+      path: "/",          
     });
-    return res.status(200).json({ 
-      Status: "Success", 
-      Message: "Logout successful" 
+
+    return res.status(200).json({
+      Status: "Success",
+      Message: "Logout successful",
     });
   } catch (error) {
     return res.status(500).json({ Error: error.message });
   }
 };
+
 
 module.exports = { signupUser, userLogin, verifyUser, userLogout };
