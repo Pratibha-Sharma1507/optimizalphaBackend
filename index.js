@@ -10,15 +10,19 @@ const uploadRoute = require("./Route/uploadRoute/uploadRoute");
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 app.use(
   cors({
-      origin: ["https://optimizalpha-frontend.vercel.app"],
+    origin: ["https://optimizalpha-frontend.vercel.app"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",
       "Authorization",
       "Cache-Control",
+      "Cookie",
+      "Set-Cookie",
     ],
   })
 );
