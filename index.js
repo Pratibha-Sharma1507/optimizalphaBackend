@@ -10,7 +10,7 @@ dotenv.config();
 const app = express();
 
 //  then use middlewares
-app.set('trust proxy', 1);
+// app.set('trust proxy', 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -58,6 +58,12 @@ app.use('/api', accountRouter);
 
 const userPortfolioRouter = require("./Route/userPortfolioRoute/userPortfolioRoute");
 app.use("/", userPortfolioRouter);
+
+const panRouter = require("./Route/panRoute/panRoute");
+app.use("/", panRouter)
+
+const filterRouter = require("./Route/filterRouter/filterRouter");
+app.use('/', filterRouter);
 
 // ===================== SESSION + PASSPORT (only for Google auth) =====================
 app.use(session({

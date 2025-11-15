@@ -108,13 +108,13 @@ const signupUser = async (req, res) => {
 
 const userLogin = async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    const { email, password } = req.body;
 
-    if (!email || !password || !role) {
-      return res.status(400).json({ Error: "Email, password, and role are required" });
+    if (!email || !password) {
+      return res.status(400).json({ Error: "Email and password are required" });
     }
 
-    const sql = "SELECT * FROM entities WHERE email = ?";
+    const sql = "SELECT * FROM users WHERE email = ?";
     connection.query(sql, [email], (err, data) => {
       if (err) {
         console.error("MySQL Error:", err);
@@ -127,75 +127,53 @@ const userLogin = async (req, res) => {
 
       const user = data[0];
 
-      //  Step 1: Check password
+      // Check password
       if (password !== user.password) {
         return res.status(401).json({ Error: "Invalid password" });
       }
 
-      //  Step 2: Check role match
-      if (role.toLowerCase() !== user.role.toLowerCase()) {
-        return res.status(403).json({ Error: "Incorrect role selected" });
-      }
-
-      
-
-      //  Step 3: Generate JWT token
+      // Generate JWT token
       const token = jwt.sign(
         {
-          id: user.entity_id,
+          user_id: user.user_id,
           email: user.email,
-          role: user.role,
-          entity_name: user.entity_name,
-          account_id: user.account_id
+          username: user.username,
+          account_id: user.account_id,   // MOST IMPORTANT
         },
         process.env.JWT_SECRET || "your-secret-key",
         { expiresIn: "7d" }
       );
+      console.log(token);
 
-      //  Step 4: Set cookie
-res.cookie("token", token, {
+      // Set cookie
+     res.cookie("token", token, {
   httpOnly: true,
-  secure: true,             // keep true (both are HTTPS)
-  sameSite: "none",         //  allow cross-site cookie sending
+  secure: true,
+  sameSite: "none",
   path: "/",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 });
-// res.cookie("token", token, {
-//   httpOnly: true,
-//   secure: false,     // problem mostly yahan hoti hai
-//   sameSite: "lax",  //  mostly okay, but cross-domain me dikkat de sakta hai
-//   path: "/",
-//   maxAge: 7 * 24 * 60 * 60 * 1000,
-// });
 
 
-
-
-      //  Step 5: Send success response
       return res.status(200).json({
         Status: "Success",
         Message: "Login successful",
         user: {
-          id: user.entity_id,
-          entity_name: user.entity_name,
+          user_id: user.user_id,
+          username: user.username,
           email: user.email,
-          role: user.role,
+          account_id: user.account_id,
         },
       });
     });
   } catch (error) {
-    console.error("Login error:", error);
     return res.status(500).json({ Error: error.message });
   }
 };
 
 
-// ==================== VERIFY USER ====================
-
-
 const verifyUser = async (req, res) => {
   try {
-    //  Get token from cookie or Authorization header
     const token =
       req.cookies?.token ||
       (req.headers.authorization && req.headers.authorization.split(" ")[1]);
@@ -207,7 +185,6 @@ const verifyUser = async (req, res) => {
       });
     }
 
-    //  Verify the token
     jwt.verify(token, process.env.JWT_SECRET || "your-secret-key", (err, decoded) => {
       if (err) {
         return res.status(403).json({
@@ -216,30 +193,25 @@ const verifyUser = async (req, res) => {
         });
       }
 
-      console.log("Decoded Token:", decoded); // For debugging
-
-      // Ensure decoded user info includes role
-      const userData = {
-        id: decoded.id,
-        entity_name: decoded.entity_name || decoded.username,
-        email: decoded.email,
-        role: decoded.role || "user", // fallback to 'user' if not in token
-      };
-
       return res.status(200).json({
         Status: "Success",
         Message: "User verified",
-        user: userData,
+        user: {
+          user_id: decoded.user_id,
+          email: decoded.email,
+          username: decoded.username,
+          account_id: decoded.account_id,  // THIS IS THE FILTER FOR ALL DATA
+        },
       });
     });
   } catch (error) {
-    console.error("verifyUser Error:", error);
     return res.status(500).json({
       Status: "Error",
       Error: error.message,
     });
   }
 };
+
 
 
 

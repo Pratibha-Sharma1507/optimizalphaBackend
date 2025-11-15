@@ -87,7 +87,7 @@ const CACHE_TTL = 1000 * 60 * 60; // 1 hour cache
 async function getInrToCurrencyRate(targetCurrency) {
   const now = Date.now();
 
-  // ✅ Use cached rates if still valid
+  //  Use cached rates if still valid
   if (cachedRates && now - lastFetched < CACHE_TTL) {
     const usdToTarget = cachedRates[targetCurrency];
     const usdToInr = cachedRates["INR"];
@@ -95,7 +95,7 @@ async function getInrToCurrencyRate(targetCurrency) {
     return +(usdToTarget / usdToInr).toFixed(4);
   }
 
-  // ✅ Fetch fresh rates from API
+  //  Fetch fresh rates from API
   const response = await axios.get("https://api.exchangerate-api.com/v4/latest/USD");
   cachedRates = response.data.rates;
   lastFetched = now;
@@ -113,7 +113,7 @@ async function handleAssetClassQuery(assetClass, req, res) {
   const requestedCurrency = (req.query.currency || "INR").toUpperCase();
 
   const query = `
-    SELECT * FROM assetclass_kpi_summary
+    SELECT * FROM assetclass1_kpi_summary
     WHERE asset_class = ?
   `;
 
@@ -126,7 +126,7 @@ async function handleAssetClassQuery(assetClass, req, res) {
     try {
       let rate = 1;
 
-      // ✅ Convert only if requested currency ≠ INR
+      // Convert only if requested currency ≠ INR
       if (requestedCurrency !== "INR") {
         rate = await getInrToCurrencyRate(requestedCurrency);
         if (!rate) {
@@ -136,10 +136,10 @@ async function handleAssetClassQuery(assetClass, req, res) {
         }
       }
 
-      // ✅ Only convert "today_total"
+      //  Only convert "today_total"
       const convertedData = results.map((row) => ({
-        pan_id: row.pan_id,
-        account: row.account,
+        pan_no: row.pan_no,
+        account_name: row.account_name,
         asset_class: row.asset_class,
         base_currency: "INR",
         currency: requestedCurrency,
