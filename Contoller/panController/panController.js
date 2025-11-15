@@ -19,9 +19,7 @@ const getPanList = (req, res) => {
   const { account_id } = req.params;
 
   const sql = `
-    SELECT DISTINCT pan_no
-    FROM pan_kpi_summary
-    WHERE account_id = ?;
+   SELECT DISTINCT pan_id, pan_no FROM pan_kpi_summary WHERE account_id = ?
   `;
 
   connection.query(sql, [account_id], (err, rows) => {
@@ -35,11 +33,35 @@ const getPanList = (req, res) => {
 const getAllPanId =  (req, res) => {
   const { account_id, pan_no } = req.params;
 
+const sql = `
+  SELECT 
+    pan_no,
+    asset_class_1,
+    asset_class_2 AS sub_asset_class,
+    today_total,
+    yesterday_total,
+    daily_return_pct,
+    3d_return_pct,
+    1w_return_pct,
+    mtd_return_pct,
+    fytd_return_pct
+  FROM assetclass2_kpi_summary
+  WHERE account_id = ? AND pan_no = ?;
+`;
+
+
+  connection.query(sql, [account_id, pan_no], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.sqlMessage });
+    res.json(rows);
+  });
+};
+
+const getAllPanBYID =  (req, res) => {
+  const { account_id, pan_no } = req.params;
+
   const sql = `
     SELECT 
       pan_no,
-      asset_class_1,
-      asset_class_2 AS sub_asset_class,
       today_total,
       yesterday_total,
       daily_return_pct,
@@ -47,18 +69,9 @@ const getAllPanId =  (req, res) => {
       1w_return_pct,
       mtd_return_pct,
       fytd_return_pct
-    FROM assetclass2_kpi_summary
-    WHERE account_id = ? AND pan_no = ?
-    ORDER BY 
-      CASE 
-        WHEN asset_class_2 = 'Equity' THEN 1
-        WHEN asset_class_2 = 'Fixed Income' THEN 2
-        WHEN asset_class_2 = 'Alternative Investments' THEN 3
-        WHEN asset_class_2 = 'Cash' THEN 4
-        ELSE 5
-      END;
+    FROM pan_kpi_summary
+    WHERE account_id = ? AND pan_no = ?;
   `;
-
 
   connection.query(sql, [account_id, pan_no], (err, rows) => {
     if (err) return res.status(500).json({ error: err.sqlMessage });
@@ -68,4 +81,4 @@ const getAllPanId =  (req, res) => {
 
 
 
-module.exports = { getPanList, getAllPans , getAllPanId};
+module.exports = { getPanList, getAllPans , getAllPanId, getAllPanBYID};

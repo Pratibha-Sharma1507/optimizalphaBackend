@@ -121,6 +121,68 @@ const filterSubAsset = (req, res) => {
 };
 
 
+const filterAllAssetClass = (req, res) => {
+  const sql = `
+    SELECT 
+      id,
+      account_id,
+      account_name,
+      asset_class,
+      latest_date,
+      today_total,
+      yesterday_total,
+      daily_return_pct,
+      3d_return_pct ,
+      1w_return_pct,
+      mtd_return_pct,
+      fytd_return_pct
+    FROM asset_class_summary
+    WHERE account_id = ?
+    ORDER BY FIELD(asset_class, 
+      'Equity', 
+      'Fixed Income', 
+      'Alternative Investments', 
+      'Cash'
+    );
+  `;
+
+  connection.query(sql, [req.params.accountId], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.sqlMessage });
+    res.json(rows);
+  });
+};
 
 
-module.exports = { filterAccount, filterPan, getAccount, filterAssetclass1, filterSubAsset};
+
+const getAllSubAsset = (req, res) => {
+  const { accountId, assetClass } = req.params;
+
+  const sql = `
+    SELECT 
+      id,
+      account_id,
+      asset_class_2 AS sub_asset,
+      today_total,
+      yesterday_total,
+      daily_return_pct,
+      3d_return_pct,
+      1w_return_pct,
+      mtd_return_pct,
+      fytd_return_pct
+    FROM assetclass2_kpi_summary
+    WHERE account_id = ?
+      AND asset_class_1 = ?
+    ORDER BY sub_asset;
+  `;
+
+  connection.query(sql, [accountId, assetClass], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.sqlMessage });
+
+    res.json(rows);
+  });
+};
+
+
+
+
+module.exports = { filterAccount, filterPan, getAccount, filterAssetclass1, filterSubAsset, filterAllAssetClass, getAllSubAsset};
