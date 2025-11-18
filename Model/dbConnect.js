@@ -22,5 +22,5 @@ pool.getConnection((err, connection) => {
     }
 });
 
-// ✅ .promise() mat lagao
+
 module.exports = pool;

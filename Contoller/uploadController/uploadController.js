@@ -13,7 +13,7 @@ const s3 = new S3Client({
 const uploadFile = async (req, res) => {
   try {
     const file = req.file;
-    const { account_id } = req.body; // 👈 frontend se aayega
+    const { account_id } = req.body; // frontend se aayega
 
     if (!file) {
       return res.status(400).json({ message: "No file uploaded" });

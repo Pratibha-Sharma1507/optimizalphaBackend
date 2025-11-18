@@ -40,71 +40,6 @@ const signupUser = async (req, res) => {
   }
 };
 
-// ==================== LOGIN ====================
-// const userLogin = async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
-
-//     if (!email || !password) {
-//       return res.status(400).json({ Error: "Email and password are required" });
-//     }
-
-//     const sql = "SELECT * FROM users WHERE email = ?";
-//     connection.query(sql, [email], (err, data) => {
-//       if (err) {
-//         return res.status(500).json({ Error: "Server error during login" });
-//       }
-
-//       if (data.length === 0) {
-//         return res.status(404).json({ Error: "User not found" });
-//       }
-
-//       // Compare password
-//       bcrypt.compare(password, data[0].password, (bcryptErr, isMatch) => {
-//         if (bcryptErr) {
-//           return res.status(500).json({ Error: "Error comparing passwords" });
-//         }
-
-//         if (!isMatch) {
-//           return res.status(401).json({ Error: "Invalid password" });
-//         }
-
-//         // Generate JWT token
-//         const token = jwt.sign(
-//           { 
-//             id: data[0].id,
-//             username: data[0].username,
-//             email: data[0].email 
-//           },
-//           process.env.JWT_SECRET || "your-secret-key",
-//           { expiresIn: "7d" }
-//         );
-
-//         // Set JWT token as HTTP-only cookie
-//   res.cookie("token", token, {
-//   httpOnly: true,
-//   secure: false,
-//   sameSite: "none",
-//   path: "/",
-//   maxAge: 7 * 24 * 60 * 60 * 1000,
-// });
-
-//         return res.status(200).json({
-//           Status: "Success",
-//           Message: "Login successful",
-//           token: token,
-//           user: {
-//             id: data[0].id,
-//             username: data[0].username,
-//             email: data[0].email
-//           }
-//         });
-//       });
-//     });
-//   } catch (error) {
-//     return res.status(500).json({ Error: error.message });
-//   }
-// };
 
 const userLogin = async (req, res) => {
   try {
@@ -293,12 +228,12 @@ const getAllUsers = async (req, res) => {
 // ==================== LOGOUT ====================
 const userLogout = async (req, res) => {
   try {
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: true,       // must be true for HTTPS (Render, Vercel)
-      sameSite: "none",   
-      path: "/",          
-    });
+   res.clearCookie("token", {
+  httpOnly: true,
+  secure: true, 
+  sameSite: "none",
+  path: "/",
+});
 
     return res.status(200).json({
       Status: "Success",

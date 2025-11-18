@@ -1,6 +1,4 @@
  const connection = require("../../Model/dbConnect");
-
-
  const getAccount = (req, res) => {
   const sql = `
     SELECT DISTINCT account_id, account_name 

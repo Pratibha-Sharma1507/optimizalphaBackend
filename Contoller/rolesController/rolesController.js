@@ -62,7 +62,7 @@ const assignRole = (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    res.json({ message: "✅ Role assigned successfully" });
+    res.json({ message: " Role assigned successfully" });
   });
 };
 

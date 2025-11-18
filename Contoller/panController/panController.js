@@ -1,4 +1,4 @@
-const connection = require("../../Model/dbConnect"); // adjust path as needed
+const connection = require("../../Model/dbConnect"); // 
 
 const getPanList = (req, res) => {
   const account_id = req.user?.account_id;
