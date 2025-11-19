@@ -1,9 +1,10 @@
  const connection = require("../../Model/dbConnect");
+
  const getAccount = (req, res) => {
   const sql = `
-    SELECT DISTINCT account_id, account_name 
-    FROM account_kpi_summary
-    ORDER BY account_name ASC
+    SELECT DISTINCT pan_id, pan_no 
+    FROM pan_kpi_summary
+    ORDER BY pan_no ASC
   `;
   connection.query(sql, (err, rows) => {
     if (err) return res.status(500).json({ error: err.sqlMessage });
@@ -14,28 +15,27 @@
 const filterAccount = (req, res) => {
   const sql = `
     SELECT 
-      account_id,
-      account_name,
-      today_total,
-      yesterday_total,
-      daily_return_pct,
-      \`3d_return_pct\`,
-      \`1w_return_pct\`,
-      mtd_return_pct,
-      fytd_return_pct
-    FROM account_kpi_summary
-    WHERE account_id = ?
+      pan_id,
+        today_total,
+      yesterday_date,
+      daily_return,
+      \`1w_return\`,
+        \`1m_return\`,
+          \`3m_return\`,
+            \`6m_return\`,
+      mtd_return,
+      fytd_return
+    FROM pan_kpi_summary
+    WHERE pan_id = ?
   `;
-console.log('res', req.params.account_id)
-  connection.query(sql, [req.params.account_id], (err, rows) => {
+console.log('res', req.params.pan_id)
+  connection.query(sql, [req.params.pan_id], (err, rows) => {
     if (err) {
       return res.status(500).json({ error: err.sqlMessage });
     }
     res.json(rows);
   });
 };
-
-
 
 const filterPan = (req, res) => {
   const sql = `
@@ -49,11 +49,11 @@ const filterPan = (req, res) => {
       mtd_return_pct,
       fytd_return_pct
     FROM pan_kpi_summary
-    WHERE account_id = ?
+    WHERE pan_id = ?
     ORDER BY pan_no ASC;
   `;
 
-  connection.query(sql, [req.params.account_id], (err, rows) => {
+  connection.query(sql, [req.params.pan_id], (err, rows) => {
     if (err) return res.status(500).json({ error: err.sqlMessage });
     res.json(rows);
   });
@@ -94,25 +94,28 @@ const sql = `
 
 
 const filterSubAsset = (req, res) => {
-  const { account_id, pan_no } = req.params;
+  const { pan_id, account_name } = req.params;
 
   const sql = `
     SELECT 
+    pan_id,
       pan_no,
-      asset_class_2 AS sub_asset_class,
+      asset_class2 AS sub_asset_class,
       today_total,
-      yesterday_total,
-      daily_return_pct,
-      3d_return_pct,
-      1w_return_pct,
-      mtd_return_pct,
-      fytd_return_pct
+      yesterday_date,
+      daily_return,
+      1w_return,
+       1m_return,
+       3m_return,
+       6m_return,
+      mtd_return,
+      fytd_return
     FROM assetclass2_kpi_summary
-    WHERE account_id = ? AND pan_no = ?
+    WHERE pan_id = ? AND account_name = ?
     ORDER BY sub_asset_class;
   `;
 
-  connection.query(sql, [account_id, pan_no], (err, rows) => {
+  connection.query(sql, [pan_id, account_name], (err, rows) => {
     if (err) return res.status(500).json({ error: err.sqlMessage });
     res.json(rows);
   });
@@ -123,19 +126,20 @@ const filterAllAssetClass = (req, res) => {
   const sql = `
     SELECT 
       id,
-      account_id,
-      account_name,
+      pan_id,
       asset_class,
       latest_date,
       today_total,
-      yesterday_total,
+      yesterday_date,
       daily_return_pct,
-      3d_return_pct ,
-      1w_return_pct,
-      mtd_return_pct,
-      fytd_return_pct
+      1w_return,
+     1m_return,
+       3m_return,
+         6m_return,
+      mtd_return,
+      fytd_return
     FROM asset_class_summary
-    WHERE account_id = ?
+    WHERE pan_id = ?
     ORDER BY FIELD(asset_class, 
       'Equity', 
       'Fixed Income', 
@@ -144,7 +148,7 @@ const filterAllAssetClass = (req, res) => {
     );
   `;
 
-  connection.query(sql, [req.params.accountId], (err, rows) => {
+  connection.query(sql, [req.params.panId], (err, rows) => {
     if (err) return res.status(500).json({ error: err.sqlMessage });
     res.json(rows);
   });
@@ -153,27 +157,32 @@ const filterAllAssetClass = (req, res) => {
 
 
 const getAllSubAsset = (req, res) => {
-  const { accountId, assetClass } = req.params;
+  const { pan_id, assetClass } = req.params;
 
   const sql = `
     SELECT 
       id,
-      account_id,
-      asset_class_2 AS sub_asset,
+      pan_id,
+      account_name,
+      asset_class AS asset_class_1,
+      asset_class2 AS sub_asset,
+      latest_date,
       today_total,
-      yesterday_total,
-      daily_return_pct,
-      3d_return_pct,
-      1w_return_pct,
-      mtd_return_pct,
-      fytd_return_pct
+      yesterday_date,
+      daily_return,
+      \`3m_return\`,
+      \`1w_return\`,
+      \`1m_return\`,
+      \`6m_return\`,
+      mtd_return,
+      fytd_return
     FROM assetclass2_kpi_summary
-    WHERE account_id = ?
-      AND asset_class_1 = ?
-    ORDER BY sub_asset;
+    WHERE pan_id = ?
+      AND asset_class = ?
+    ORDER BY sub_asset, account_name;
   `;
 
-  connection.query(sql, [accountId, assetClass], (err, rows) => {
+  connection.query(sql, [pan_id, assetClass], (err, rows) => {
     if (err) return res.status(500).json({ error: err.sqlMessage });
 
     res.json(rows);
@@ -181,6 +190,50 @@ const getAllSubAsset = (req, res) => {
 };
 
 
+ const getPanAssetSummary = (req, res) => {
+  const { pan_id } = req.params;
+
+  const sql = `
+    SELECT 
+      pan_id,
+      account_name,
+      asset_class,
+      latest_date,
+      today_total,
+      yesterday_date,
+      daily_return,
+      \`1w_return\`,
+      \`1m_return\`,
+      \`3m_return\`,
+      \`6m_return\`,
+      mtd_return,
+      fytd_return
+    FROM assetclass1_kpi_summary
+    WHERE pan_id = ?
+    ORDER BY asset_class, account_name;
+  `;
+
+  connection.query(sql, [pan_id], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.sqlMessage });
+
+    // ---  Grouping Logic ---
+    const grouped = {};
+
+    for (const row of rows) {
+      if (!grouped[row.asset_class]) {
+        grouped[row.asset_class] = [];
+      }
+      grouped[row.asset_class].push(row);
+    }
+
+    res.json(grouped);
+  });
+};
 
 
-module.exports = { filterAccount, filterPan, getAccount, filterAssetclass1, filterSubAsset, filterAllAssetClass, getAllSubAsset};
+
+
+
+
+
+module.exports = { filterAccount, filterPan, getAccount, filterAssetclass1, filterSubAsset, filterAllAssetClass, getAllSubAsset, getPanAssetSummary};

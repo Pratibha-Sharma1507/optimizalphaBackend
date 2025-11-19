@@ -1,13 +1,13 @@
 const connection = require("../../Model/dbConnect"); // 
 
 const getPanList = (req, res) => {
-  const account_id = req.user?.account_id;
+  const pan_id = req.user?.pan_id;
 
   if (!account_id) return res.status(401).json({ error: "Unauthorized" });
 
-  const sql = `SELECT DISTINCT pan_id, pan_no FROM pan_kpi_summary WHERE account_id = ?`;
+  const sql = `SELECT DISTINCT account_id, account_name FROM account_kpi_summary WHERE pan_id = ?`;
 
-  connection.query(sql, [account_id], (err, result) => {
+  connection.query(sql, [pan_id], (err, result) => {
     if (err) return res.status(500).json({ error: err.sqlMessage });
     res.status(200).json(result);
   });
@@ -16,13 +16,13 @@ const getPanList = (req, res) => {
 
 // GET /api/pan-list/:account_id
  const getAllPans = (req, res) => {
-  const { account_id } = req.params;
+  const { pan_id } = req.params;
 
   const sql = `
-   SELECT DISTINCT pan_id, pan_no FROM pan_kpi_summary WHERE account_id = ?
+   SELECT DISTINCT account_id, account_name FROM account_kpi_summary WHERE pan_id = ?
   `;
 
-  connection.query(sql, [account_id], (err, rows) => {
+  connection.query(sql, [pan_id], (err, rows) => {
     if (err) return res.status(500).json({ error: err.sqlMessage });
     res.json(rows);
   });
@@ -56,29 +56,37 @@ const sql = `
   });
 };
 
-const getAllPanBYID =  (req, res) => {
-  const { account_id, pan_no } = req.params;
+const getAllPanBYID = (req, res) => {
+  let { pan_id, account_name } = req.params;
+
+  account_name = decodeURIComponent(account_name);
+
+  console.log("REQ PARAMS:", { pan_id, account_name });
 
   const sql = `
     SELECT 
-      pan_no,
+      pan_id,
+      account_name,
       today_total,
-      yesterday_total,
-      daily_return_pct,
-      3d_return_pct,
-      1w_return_pct,
-      mtd_return_pct,
-      fytd_return_pct
-    FROM pan_kpi_summary
-    WHERE account_id = ? AND pan_no = ?;
+      latest_date,
+      yesterday_date,
+      daily_return,
+      \`1w_return\`,
+      \`1m_return\`,
+      \`3m_return\`,
+      \`6m_return\`,
+      mtd_return,
+      fytd_return
+    FROM account_kpi_summary
+    WHERE pan_id = ?
+    AND REPLACE(LOWER(account_name), ' ', '') = REPLACE(LOWER(?), ' ', '');
   `;
 
-  connection.query(sql, [account_id, pan_no], (err, rows) => {
+  connection.query(sql, [pan_id, account_name], (err, rows) => {
     if (err) return res.status(500).json({ error: err.sqlMessage });
     res.json(rows);
   });
 };
-
 
 
 module.exports = { getPanList, getAllPans , getAllPanId, getAllPanBYID};

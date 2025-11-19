@@ -37,30 +37,31 @@ async function getAccountKpiSummary(req, res) {
     const requestedCurrency = (req.query.currency || "INR").toUpperCase();
 
     //  Get logged-in user's account_id (decoded from JWT middleware)
-    const account_id = req.user?.account_id;
+    const pan_id = req.user?.pan_id;
 
-    if (!account_id) {
+    if (!pan_id) {
       return res.status(401).json({ error: "Unauthorized: account_id missing" });
     }
 
     const query = `
       SELECT 
         id, 
-        account_id,
-        account_name, 
+        pan_id,
         latest_date,
         today_total,
-        yesterday_total,
-        daily_return_pct,
-        \`3d_return_pct\`,
-        \`1w_return_pct\`,
-        mtd_return_pct,
-        fytd_return_pct
-      FROM account_kpi_summary
-      WHERE account_id = ?
+        yesterday_date,
+        daily_return,
+        \`1w_return\`,
+         \`1m_return\`,
+          \`3m_return\`,
+           \`6m_return\`,
+        mtd_return,
+        fytd_return
+      FROM pan_kpi_summary
+      WHERE pan_id = ?
     `;
 
-    connection.query(query, [account_id], async (error, results) => {
+    connection.query(query, [pan_id], async (error, results) => {
       if (error) {
         console.error("Account KPI DB error:", error);
         return res.status(500).json({ error: error.sqlMessage });
@@ -81,18 +82,20 @@ async function getAccountKpiSummary(req, res) {
       // Convert ONLY today_total
       const convertedData = results.map((row) => ({
         id: row.id,
-        account_id: row.account_id,
-        account_name: row.account_name,
+        pan_id: row.pan_id,
+        pan_no: row.pan_no,
         base_currency: "INR",
         currency: requestedCurrency,
         latest_date: row.latest_date,
         today_total: row.today_total ? +(row.today_total * rate).toFixed(2) : null,
-        yesterday_total: row.yesterday_total,
-        daily_return_pct: row.daily_return_pct,
-        "3d_return_pct": row["3d_return_pct"],
-        "1w_return_pct": row["1w_return_pct"],
-        mtd_return_pct: row.mtd_return_pct,
-        fytd_return_pct: row.fytd_return_pct,
+        yesterday_date: row.yesterday_date,
+        daily_return: row.daily_return,
+        "1w_return": row["1w_return"],
+          "1m_return": row["1m_return"],
+            "3m_return": row["3m_return"],
+              "6m_return": row["6m_return"],
+        mtd_return: row.mtd_return,
+        fytd_return: row.fytd_return,
         conversion_rate: rate,
       }));
 
