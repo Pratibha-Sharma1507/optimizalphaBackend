@@ -37,31 +37,38 @@ async function getAccountKpiSummary(req, res) {
     const requestedCurrency = (req.query.currency || "INR").toUpperCase();
 
     //  Get logged-in user's account_id (decoded from JWT middleware)
-    const pan_id = req.user?.pan_id;
+    const client_id = req.user?.client_id;
 
-    if (!pan_id) {
-      return res.status(401).json({ error: "Unauthorized: account_id missing" });
+    if (!client_id) {
+      return res.status(401).json({ error: "Unauthorized: client_id missing" });
     }
 
     const query = `
       SELECT 
         id, 
-        pan_id,
+        client_id,
         latest_date,
         today_total,
-        yesterday_date,
+        prev_date,
+        yesterday_total,
         daily_return,
+          \`1w_value\`,
         \`1w_return\`,
+          \`1m_value\`,
          \`1m_return\`,
+           \`3m_value\`,
           \`3m_return\`,
+            \`6m_value\`,
            \`6m_return\`,
         mtd_return,
-        fytd_return
+          mtd_value,
+        fytd_return,
+         fytd_value
       FROM pan_kpi_summary
-      WHERE pan_id = ?
+      WHERE client_id = ?
     `;
 
-    connection.query(query, [pan_id], async (error, results) => {
+    connection.query(query, [client_id], async (error, results) => {
       if (error) {
         console.error("Account KPI DB error:", error);
         return res.status(500).json({ error: error.sqlMessage });
@@ -82,20 +89,27 @@ async function getAccountKpiSummary(req, res) {
       // Convert ONLY today_total
       const convertedData = results.map((row) => ({
         id: row.id,
-        pan_id: row.pan_id,
-        pan_no: row.pan_no,
+        client_id: row.client_id,
+        client_no: row.client_no,
         base_currency: "INR",
         currency: requestedCurrency,
         latest_date: row.latest_date,
         today_total: row.today_total ? +(row.today_total * rate).toFixed(2) : null,
-        yesterday_date: row.yesterday_date,
+        prev_date: row.prev_date,
+       yesterday_total: row.today_total ? +(row.yesterday_total * rate).toFixed(2) : null,
         daily_return: row.daily_return,
+            "1w_value": row["1w_value"],
         "1w_return": row["1w_return"],
+         "1m_value": row["1m_value"],
           "1m_return": row["1m_return"],
+           "3m_value": row["3m_value"],
             "3m_return": row["3m_return"],
+              "6m_value": row["6m_value"],
               "6m_return": row["6m_return"],
         mtd_return: row.mtd_return,
+           mtd_value: row.mtd_value,
         fytd_return: row.fytd_return,
+           fytd_value: row.fytd_value,
         conversion_rate: rate,
       }));
 
@@ -106,9 +120,5 @@ async function getAccountKpiSummary(req, res) {
     res.status(502).json({ error: "Failed to fetch KPI summary" });
   }
 }
-
-
-
-
 
 module.exports = { getAccountKpiSummary };

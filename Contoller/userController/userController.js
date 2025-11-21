@@ -73,7 +73,7 @@ const userLogin = async (req, res) => {
           user_id: user.user_id,
           email: user.email,
           username: user.username,
-          pan_id: user.pan_id,   // MOST IMPORTANT
+          client_id: user.client_id,   // MOST IMPORTANT
         },
         process.env.JWT_SECRET || "your-secret-key",
         { expiresIn: "7d" }
@@ -106,7 +106,7 @@ const userLogin = async (req, res) => {
           user_id: user.user_id,
           username: user.username,
           email: user.email,
-          pan_id: user.pan_id,
+          client_id: user.client_id,
         },
       });
     });
@@ -144,7 +144,7 @@ const verifyUser = async (req, res) => {
           user_id: decoded.user_id,
           email: decoded.email,
           username: decoded.username,
-          pan_id: decoded.pan_id,  // THIS IS THE FILTER FOR ALL DATA
+          client_id: decoded.client_id,  // THIS IS THE FILTER FOR ALL DATA
         },
       });
     });
