@@ -1,6 +1,6 @@
 const express = require("express");
 const filterRouter = express.Router();
-const { filterAccount,getAssetClassByAccount, getPanKpiByClient, getSubAssetsByAccount,filterPan, getAccount, filterAssetclass1, filterAllAssetClass, getAllSubAsset, getPanAssetSummary, getAccountKpiByClient } = require("../../Contoller/filterController/filterController");
+const { filterAccount,getallSubAssetClass,getAssetClassByAccount, getPanKpiByClient, getSubAssetsByAccount,filterPan, getAccount, filterAssetclass1, filterAllAssetClass, getAllSubAsset, getPanAssetSummary, getAccountKpiByClient } = require("../../Contoller/filterController/filterController");
 // const verifyUser = require('../../Middleware/authMiddleware')
 // const {verifyUser} = require("../../Contoller/userController/userController")
 const { verifyToken } = require('../../Middleware/authMiddleware')
@@ -22,6 +22,8 @@ filterRouter.get("/api/account-asset/:client_id/:account_name", verifyToken, get
 filterRouter.get("/api/account/sub-asset/:client_id/:account_name", getSubAssetsByAccount);
 // e.g. in panRouter.js or kpiRouter.js
 filterRouter.get("/api/pan-summary1/:client_id", verifyToken, getPanKpiByClient);
+
+filterRouter.get("/api/subassets/:client_id/:account_name/:asset_class",verifyToken,getallSubAssetClass); 
 
 
 

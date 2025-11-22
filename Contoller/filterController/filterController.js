@@ -337,6 +337,37 @@ const getSubAssetsByAccount = (req, res) => {
     res.json(rows);
   });
 };
+// const getallSubAssetClass = async (req, res) => {
+//   const { client_id, account_name, asset_class } = req.params;
+
+//   const [rows] = await connection.query(
+//     `SELECT sub_asset_class, today_total
+//      FROM AssetClass2_KPI_Summary 
+//      WHERE client_id=? AND account_name=? AND asset_class=?`,
+//     [client_id, account_name, asset_class]
+//   );
+
+//   res.json({ subassets: rows });
+// };
+
+const getallSubAssetClass = (req, res) => {
+  const { client_id, account_name, asset_class } = req.params;
+
+  const sql = `
+    SELECT asset_class2, today_total
+    FROM AssetClass2_KPI_Summary
+    WHERE client_id = ? AND account_name = ? AND asset_class = ?
+  `;
+
+  connection.query(sql, [client_id, account_name, asset_class], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.sqlMessage });
+    }
+
+    res.json({ subassets: rows });
+  });
+};
+
 
 
 
@@ -415,4 +446,4 @@ const getPanKpiByClient = (req, res) => {
 
 
 
-module.exports = { filterAccount,  getPanKpiByClient,getAssetClassByAccount,getSubAssetsByAccount,filterPan, getAccount, filterAssetclass1, filterSubAsset, filterAllAssetClass, getAllSubAsset, getPanAssetSummary, getAccountKpiByClient};
+module.exports = { filterAccount,getallSubAssetClass,  getPanKpiByClient,getAssetClassByAccount,getSubAssetsByAccount,filterPan, getAccount, filterAssetclass1, filterSubAsset, filterAllAssetClass, getAllSubAsset, getPanAssetSummary, getAccountKpiByClient};
