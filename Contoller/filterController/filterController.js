@@ -354,7 +354,7 @@ const getallSubAssetClass = (req, res) => {
   const { client_id, account_name, asset_class } = req.params;
 
   const sql = `
-    SELECT asset_class2, today_total
+    SELECT asset_class2, today_total, daily_return
     FROM assetclass2_kpi_summary
     WHERE client_id = ? AND account_name = ? AND asset_class = ?
   `;

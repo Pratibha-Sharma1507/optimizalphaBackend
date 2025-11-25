@@ -19,7 +19,7 @@ const getPanList = (req, res) => {
   const { client_id } = req.params;
 
   const sql = `
-   SELECT DISTINCT account_id, account_name, today_total FROM account_kpi_summary WHERE client_id = ?
+   SELECT DISTINCT account_id, account_name, today_total, daily_return FROM account_kpi_summary WHERE client_id = ?
   `;
 
   connection.query(sql, [client_id], (err, rows) => {

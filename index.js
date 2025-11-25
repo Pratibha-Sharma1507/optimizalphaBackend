@@ -65,6 +65,9 @@ app.use("/", panRouter)
 const filterRouter = require("./Route/filterRouter/filterRouter");
 app.use('/', filterRouter);
 
+const deltaRouter = require("./Route/deltaRoute/deltaRoute");
+app.use('/', deltaRouter);
+
 // ===================== SESSION + PASSPORT (only for Google auth) =====================
 app.use(session({
   secret: "your-secret-key",
