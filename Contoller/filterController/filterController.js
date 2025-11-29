@@ -1,5 +1,197 @@
  const connection = require("../../Model/dbConnect");
 
+
+
+
+ const formatDateLabel = (dateString) => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return 'Invalid Date';
+  
+  const day = date.getDate();
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = monthNames[date.getMonth()];
+  
+  return `${day} ${month}`;
+};
+
+// Format full date for tooltip
+const formatFullDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return 'Invalid Date';
+  
+  const day = date.getDate();
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = monthNames[date.getMonth()];
+  const year = date.getFullYear();
+  
+  return `${day} ${month} ${year}`;
+};
+
+// Map frontend asset class values to database values
+const assetClass1Mapping = {
+  'equity': 'Equity',
+  'fixedIncome': 'Fixed Income',
+  'cash': 'Cash',
+  'alternative': 'Alternative Investments'
+};
+
+// Map frontend sub-asset class values to database values
+const assetClass2Mapping = {
+  'equityListed': 'Equity - Listed',
+  'equityMF': 'Equity - MF',
+  'equityPEDirect': 'Equity - Private Equity - Direct',
+  'equityPEVC': 'Equity - Private Equity - VC',
+  'fixedIncomeMF': 'Fixed Income - MF',
+  'cashMMF': 'Cash - MMF',
+  'aifREIT': 'AIF - REIT',
+  'aifHF': 'AIF - HF'
+};
+
+// UPDATED: Query with 5 indices
+const getComparisonData = (req, res) => {
+  const { assetClass1, assetClass2 } = req.query;
+  
+  const dbAssetClass1 = assetClass1Mapping[assetClass1];
+  if (!dbAssetClass1) {
+    return res.status(400).json({ message: "Invalid asset class 1" });
+  }
+
+  // Convert client query param into client_id (number expected)
+  let clientId = req.query.client_id || 1;
+
+  console.log(`Fetching comparison data for: ${dbAssetClass1}, SubClass: ${assetClass2 || "None"}, ClientID: ${clientId}`);
+
+  // Case 1: No subcategory → asset_class table
+  if (!assetClass2) {
+    const sql = `
+      SELECT 
+        date,
+        asset_class_1,
+        index_name,
+        one_month_return,
+        composite_calculation_sum
+      FROM asset_class
+      WHERE asset_class_1 = ?
+        AND client_id = ?
+        AND date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+        AND date IS NOT NULL
+      ORDER BY date ASC, index_name ASC
+    `;
+
+    connection.query(sql, [dbAssetClass1, clientId], (err, rows) => {
+      if (err) {
+        console.error("MySQL Query Error:", err);
+        return res.status(500).json({ 
+          message: "Database error", 
+          error: err.sqlMessage 
+        });
+      }
+
+      if (!rows.length) {
+        return res.json([]);
+      }
+
+      const dateMap = new Map();
+      
+      rows.forEach(row => {
+        const dateKey = row.date.toISOString().split("T")[0];
+        
+        if (!dateMap.has(dateKey)) {
+          dateMap.set(dateKey, {
+            date: formatDateLabel(row.date),
+            fullDate: formatFullDate(row.date),
+            value: parseFloat(row.one_month_return) || 0,
+            nifty50: 0,
+            nse150: 0,
+            nse500: 0,
+            nseGscmp: 0,
+            overnightLiquid: 0
+          });
+        }
+
+        const data = dateMap.get(dateKey);
+        const value = parseFloat(row.composite_calculation_sum) || 0;
+
+        if (row.index_name === "NIFTY 50") data.nifty50 = value;
+        else if (row.index_name === "NSE 150") data.nse150 = value;
+        else if (row.index_name === "NSE 500") data.nse500 = value;
+        else if (row.index_name === "NSE GSCMP") data.nseGscmp = value;
+        else if (row.index_name === "Overnight Liquid Rate") data.overnightLiquid = value;
+      });
+
+      res.json([...dateMap.values()]);
+    });
+  }
+
+  // Case 2: Subcategory → subassetclass table
+  else {
+
+    const dbAssetClass2 = assetClass2Mapping[assetClass2];
+    if (!dbAssetClass2) {
+      return res.status(400).json({ message: "Invalid asset class 2" });
+    }
+
+    const sql = `
+      SELECT 
+        sa.date,
+        sa.asset_class_1,
+        sa.asset_class_2,
+        sa.index_name,
+        sa.composite_calculation,
+        sa.one_month_return
+      FROM subassetclass sa
+      WHERE sa.asset_class_2 = ?
+        AND sa.asset_class_1 = ?
+        AND sa.client_id = ?
+        AND sa.date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+        AND sa.date IS NOT NULL
+      ORDER BY sa.date ASC, sa.index_name ASC
+    `;
+
+    connection.query(sql, [dbAssetClass2, dbAssetClass1, clientId], (err, rows) => {
+      if (err) {
+        console.error("MySQL Query Error:", err);
+        return res.status(500).json({ message: "Database error", error: err.sqlMessage });
+      }
+
+      if (!rows.length) return res.json([]);
+
+      const dateMap = new Map();
+      
+      rows.forEach(row => {
+        const dateKey = row.date.toISOString().split("T")[0];
+
+        if (!dateMap.has(dateKey)) {
+          dateMap.set(dateKey, {
+            date: formatDateLabel(row.date),
+            fullDate: formatFullDate(row.date),
+            value: parseFloat(row.one_month_return) || 0,
+            nifty50: 0,
+            nse150: 0,
+            nse500: 0,
+            nseGscmp: 0,
+            overnightLiquid: 0
+          });
+        }
+
+        const data = dateMap.get(dateKey);
+        const value = parseFloat(row.composite_calculation) || 0;
+
+        if (row.index_name === "NIFTY 50") data.nifty50 = value;
+        else if (row.index_name === "NSE 150") data.nse150 = value;
+        else if (row.index_name === "NSE 500") data.nse500 = value;
+        else if (row.index_name === "NSE GSCMP") data.nseGscmp = value;
+        else if (row.index_name === "Overnight Liquid Rate") data.overnightLiquid = value;
+      });
+
+      res.json([...dateMap.values()]);
+    });
+  }
+};
+
+
  const getAccount = (req, res) => {
   const sql = `
     SELECT DISTINCT pan_id, pan_no 
@@ -446,4 +638,4 @@ const getPanKpiByClient = (req, res) => {
 
 
 
-module.exports = { filterAccount,getallSubAssetClass,  getPanKpiByClient,getAssetClassByAccount,getSubAssetsByAccount,filterPan, getAccount, filterAssetclass1, filterSubAsset, filterAllAssetClass, getAllSubAsset, getPanAssetSummary, getAccountKpiByClient};
+module.exports = {getComparisonData, filterAccount,getallSubAssetClass,  getPanKpiByClient,getAssetClassByAccount,getSubAssetsByAccount,filterPan, getAccount, filterAssetclass1, filterSubAsset, filterAllAssetClass, getAllSubAsset, getPanAssetSummary, getAccountKpiByClient};
