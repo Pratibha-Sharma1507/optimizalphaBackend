@@ -2,102 +2,136 @@
 
 
 
-
- const formatDateLabel = (dateString) => {
-  if (!dateString) return 'N/A';
+const formatDateLabel = (dateString) => {
+  if (!dateString) return "N/A";
   const date = new Date(dateString);
-  if (isNaN(date.getTime())) return 'Invalid Date';
-  
+  if (isNaN(date.getTime())) return "Invalid Date";
+
   const day = date.getDate();
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthNames = [
+    "Jan","Feb","Mar","Apr","May","Jun",
+    "Jul","Aug","Sep","Oct","Nov","Dec"
+  ];
   const month = monthNames[date.getMonth()];
-  
+
   return `${day} ${month}`;
 };
 
 // Format full date for tooltip
 const formatFullDate = (dateString) => {
-  if (!dateString) return 'N/A';
+  if (!dateString) return "N/A";
   const date = new Date(dateString);
-  if (isNaN(date.getTime())) return 'Invalid Date';
-  
+  if (isNaN(date.getTime())) return "Invalid Date";
+
   const day = date.getDate();
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthNames = [
+    "Jan","Feb","Mar","Apr","May","Jun",
+    "Jul","Aug","Sep","Oct","Nov","Dec"
+  ];
   const month = monthNames[date.getMonth()];
   const year = date.getFullYear();
-  
+
   return `${day} ${month} ${year}`;
+};
+
+// Get labels for previous month based on fullDate ("29 Nov 2024")
+const getPreviousMonthLabels = (fullDateLabel) => {
+  const parts = fullDateLabel.split(" ");
+  if (parts.length !== 3) return null;
+
+  const [dayStr, monthStr, yearStr] = parts;
+  const day = Number(dayStr);
+  const monthNames = [
+    "Jan","Feb","Mar","Apr","May","Jun",
+    "Jul","Aug","Sep","Oct","Nov","Dec"
+  ];
+  const monthIndex = monthNames.indexOf(monthStr);
+  const year = Number(yearStr);
+
+  if (isNaN(day) || isNaN(year) || monthIndex === -1) return null;
+
+  const d = new Date(year, monthIndex, day);
+  d.setMonth(d.getMonth() - 1);
+
+  const prevDay = d.getDate();
+  const prevMonth = monthNames[d.getMonth()];
+  const prevYear = d.getFullYear();
+
+  return {
+    date: `${prevDay} ${prevMonth}`,
+    fullDate: `${prevDay} ${prevMonth} ${prevYear}`,
+  };
 };
 
 // Map frontend asset class values to database values
 const assetClass1Mapping = {
-  'equity': 'Equity',
-  'fixedIncome': 'Fixed Income',
-  'cash': 'Cash',
-  'alternative': 'Alternative Investments'
+  equity: "Equity",
+  fixedIncome: "Fixed Income",
+  cash: "Cash",
+  alternative: "Alternative Investments",
 };
 
 // Map frontend sub-asset class values to database values
 const assetClass2Mapping = {
-  'equityListed': 'Equity - Listed',
-  'equityMF': 'Equity - MF',
-  'equityPEDirect': 'Equity - Private Equity - Direct',
-  'equityPEVC': 'Equity - Private Equity - VC',
-  'fixedIncomeMF': 'Fixed Income - MF',
-  'cashMMF': 'Cash - MMF',
-  'aifREIT': 'AIF - REIT',
-  'aifHF': 'AIF - HF'
+  equityListed: "Equity - Listed",
+  equityMF: "Equity - MF",
+  equityPEDirect: "Equity - Private Equity - Direct",
+  equityPEVC: "Equity - Private Equity - VC",
+  fixedIncomeMF: "Fixed Income - MF",
+  cashMMF: "Cash - MMF",
+  aifREIT: "AIF - REIT",
+  aifHF: "AIF - HF",
 };
 
-// UPDATED: Query with 5 indices
+// =============== getComparisonData ===================
 const getComparisonData = (req, res) => {
-  const { assetClass1, assetClass2 } = req.query;
-  
+  const { assetClass1, assetClass2, client_id } = req.query;
+
+  if (!client_id) {
+    return res.status(400).json({ message: "client_id is required" });
+  }
+
   const dbAssetClass1 = assetClass1Mapping[assetClass1];
   if (!dbAssetClass1) {
     return res.status(400).json({ message: "Invalid asset class 1" });
   }
 
-  // Convert client query param into client_id (number expected)
-  let clientId = req.query.client_id || 1;
+  console.log(
+    `Fetching comparison data for: ${dbAssetClass1}, SubClass: ${
+      assetClass2 || "None"
+    }, Client ID: ${client_id}`
+  );
 
-  console.log(`Fetching comparison data for: ${dbAssetClass1}, SubClass: ${assetClass2 || "None"}, ClientID: ${clientId}`);
-
-  // Case 1: No subcategory → asset_class table
+  // Case 1: No subcategory
   if (!assetClass2) {
     const sql = `
       SELECT 
         date,
         asset_class_1,
         index_name,
-        one_month_return,
-        composite_calculation_sum
+        ROUND(one_month_return, 2) AS one_month_return,
+        ROUND(composite_calculation_sum, 2) AS composite_calculation_sum
       FROM asset_class
       WHERE asset_class_1 = ?
         AND client_id = ?
-        AND date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
         AND date IS NOT NULL
       ORDER BY date ASC, index_name ASC
     `;
 
-    connection.query(sql, [dbAssetClass1, clientId], (err, rows) => {
+    connection.query(sql, [dbAssetClass1, client_id], (err, rows) => {
       if (err) {
         console.error("MySQL Query Error:", err);
-        return res.status(500).json({ 
-          message: "Database error", 
-          error: err.sqlMessage 
-        });
+        return res.status(500).json({ message: "Database error", error: err.sqlMessage });
       }
 
-      if (!rows.length) {
-        return res.json([]);
-      }
+      if (!rows.length) return res.json([]);
+
+      console.log(`Found ${rows.length} records for client_id: ${client_id}`);
 
       const dateMap = new Map();
-      
-      rows.forEach(row => {
+
+      rows.forEach((row) => {
         const dateKey = row.date.toISOString().split("T")[0];
-        
         if (!dateMap.has(dateKey)) {
           dateMap.set(dateKey, {
             date: formatDateLabel(row.date),
@@ -107,27 +141,47 @@ const getComparisonData = (req, res) => {
             nse150: 0,
             nse500: 0,
             nseGscmp: 0,
-            overnightLiquid: 0
+            overnightLiquid: 0,
           });
         }
 
         const data = dateMap.get(dateKey);
-        const value = parseFloat(row.composite_calculation_sum) || 0;
+        const indexValue = parseFloat(row.composite_calculation_sum) || 0;
 
-        if (row.index_name === "NIFTY 50") data.nifty50 = value;
-        else if (row.index_name === "NSE 150") data.nse150 = value;
-        else if (row.index_name === "NSE 500") data.nse500 = value;
-        else if (row.index_name === "NSE GSCMP") data.nseGscmp = value;
-        else if (row.index_name === "Overnight Liquid Rate") data.overnightLiquid = value;
+        switch (row.index_name) {
+          case "NIFTY 50": data.nifty50 = indexValue; break;
+          case "NSE 150": data.nse150 = indexValue; break;
+          case "NSE 500": data.nse500 = indexValue; break;
+          case "NSE GSCMP": data.nseGscmp = indexValue; break;
+          case "Overnight Liquid Rate": data.overnightLiquid = indexValue; break;
+        }
       });
 
-      res.json([...dateMap.values()]);
+      let formattedData = Array.from(dateMap.values());
+  
+      if (formattedData.length > 0) {
+        const first = formattedData[0];
+        const prev = getPreviousMonthLabels(first.fullDate);
+        if (prev) {
+          formattedData.unshift({
+            date: prev.date,
+            fullDate: prev.fullDate,
+            value: 0,
+            nifty50: 0,
+            nse150: 0,
+            nse500: 0,
+            nseGscmp: 0,
+            overnightLiquid: 0,
+          });
+        }
+      }
+
+      res.json(formattedData);
     });
   }
 
-  // Case 2: Subcategory → subassetclass table
+  // Case 2: If subcategory exists
   else {
-
     const dbAssetClass2 = assetClass2Mapping[assetClass2];
     if (!dbAssetClass2) {
       return res.status(400).json({ message: "Invalid asset class 2" });
@@ -139,57 +193,80 @@ const getComparisonData = (req, res) => {
         sa.asset_class_1,
         sa.asset_class_2,
         sa.index_name,
-        sa.composite_calculation,
-        sa.one_month_return
+        ROUND(sa.composite_calculation, 2) AS composite_calculation,
+        ROUND(sa.one_month_return, 2) AS one_month_return
       FROM subassetclass sa
       WHERE sa.asset_class_2 = ?
         AND sa.asset_class_1 = ?
         AND sa.client_id = ?
-        AND sa.date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
         AND sa.date IS NOT NULL
       ORDER BY sa.date ASC, sa.index_name ASC
     `;
 
-    connection.query(sql, [dbAssetClass2, dbAssetClass1, clientId], (err, rows) => {
+    connection.query(sql, [dbAssetClass2, dbAssetClass1, client_id], (err, rows) => {
       if (err) {
-        console.error("MySQL Query Error:", err);
         return res.status(500).json({ message: "Database error", error: err.sqlMessage });
       }
 
       if (!rows.length) return res.json([]);
 
       const dateMap = new Map();
-      
-      rows.forEach(row => {
+
+      rows.forEach((row) => {
         const dateKey = row.date.toISOString().split("T")[0];
 
         if (!dateMap.has(dateKey)) {
           dateMap.set(dateKey, {
             date: formatDateLabel(row.date),
             fullDate: formatFullDate(row.date),
-            value: parseFloat(row.one_month_return) || 0,
+            value: 0,
             nifty50: 0,
             nse150: 0,
             nse500: 0,
             nseGscmp: 0,
-            overnightLiquid: 0
+            overnightLiquid: 0,
           });
         }
 
         const data = dateMap.get(dateKey);
-        const value = parseFloat(row.composite_calculation) || 0;
+        const calculatedValue = parseFloat(row.composite_calculation) || 0;
 
-        if (row.index_name === "NIFTY 50") data.nifty50 = value;
-        else if (row.index_name === "NSE 150") data.nse150 = value;
-        else if (row.index_name === "NSE 500") data.nse500 = value;
-        else if (row.index_name === "NSE GSCMP") data.nseGscmp = value;
-        else if (row.index_name === "Overnight Liquid Rate") data.overnightLiquid = value;
+        switch (row.index_name) {
+          case "NIFTY 50": data.nifty50 = calculatedValue; break;
+          case "NSE 150": data.nse150 = calculatedValue; break;
+          case "NSE 500": data.nse500 = calculatedValue; break;
+          case "NSE GSCMP": data.nseGscmp = calculatedValue; break;
+          case "Overnight Liquid Rate": 
+            data.overnightLiquid = calculatedValue;
+            data.value = parseFloat(row.one_month_return) || 0;
+            break;
+        }
       });
 
-      res.json([...dateMap.values()]);
+      let formattedData = Array.from(dateMap.values());
+
+      if (formattedData.length > 0) {
+        const first = formattedData[0];
+        const prev = getPreviousMonthLabels(first.fullDate);
+        if (prev) {
+          formattedData.unshift({
+            date: prev.date,
+            fullDate: prev.fullDate,
+            value: 0,
+            nifty50: 0,
+            nse150: 0,
+            nse500: 0,
+            nseGscmp: 0,
+            overnightLiquid: 0,
+          });
+        }
+      }
+
+      res.json(formattedData);
     });
   }
 };
+
 
 
  const getAccount = (req, res) => {
